@@ -9,17 +9,17 @@ import {
   Calendar,
   User,
   DollarSign,
-  Clock
+  Clock,
+  X,
+  Save
 } from 'lucide-react';
 
 const Projects = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [showModal, setShowModal] = useState(false);
-
-  const projectStatuses = ['All', 'Planning', 'In Progress', 'Testing', 'Completed', 'On Hold'];
-
-  const projects = [
+  const [editingProject, setEditingProject] = useState(null);
+  const [projects, setProjects] = useState([
     {
       id: 1,
       name: 'EthioPay Mobile App',
@@ -55,16 +55,129 @@ const Projects = () => {
     },
     {
       id: 4,
-      name: 'TechCorp ERP System',
-      client: 'TechCorp Inc.',
+      name: 'EduTech Learning Portal',
+      client: 'EduTech Solutions',
       status: 'Testing',
       progress: 90,
-      startDate: '2023-10-15',
+      startDate: '2023-12-01',
       endDate: '2024-02-15',
-      budget: 85000,
-      team: ['David Lee', 'Emma Clark', 'James Taylor']
+      budget: 35000,
+      team: ['David Lee', 'Emma Clark']
     }
-  ];
+  ]);
+
+  const [formData, setFormData] = useState({
+    name: '',
+    client: '',
+    status: 'Planning',
+    progress: 0,
+    startDate: '',
+    endDate: '',
+    budget: '',
+    team: ''
+  });
+
+  const projectStatuses = ['All', 'Planning', 'In Progress', 'Testing', 'Completed', 'On Hold'];
+
+  // Handle form input changes
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Open modal for adding new project
+  const handleAddProject = () => {
+    setFormData({
+      name: '',
+      client: '',
+      status: 'Planning',
+      progress: 0,
+      startDate: '',
+      endDate: '',
+      budget: '',
+      team: ''
+    });
+    setEditingProject(null);
+    setShowModal(true);
+  };
+
+  // Open modal for editing existing project
+  const handleEditProject = (project) => {
+    setFormData({
+      name: project.name,
+      client: project.client,
+      status: project.status,
+      progress: project.progress,
+      startDate: project.startDate,
+      endDate: project.endDate,
+      budget: project.budget,
+      team: Array.isArray(project.team) ? project.team.join(', ') : project.team
+    });
+    setEditingProject(project);
+    setShowModal(true);
+  };
+
+  // Save project (add or edit)
+  const handleSaveProject = () => {
+    if (!formData.name || !formData.client) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    const teamArray = formData.team.split(',').map(member => member.trim()).filter(member => member);
+    
+    if (editingProject) {
+      // Edit existing project
+      setProjects(prev => prev.map(project => 
+        project.id === editingProject.id 
+          ? {
+              ...project,
+              name: formData.name,
+              client: formData.client,
+              status: formData.status,
+              progress: parseInt(formData.progress),
+              startDate: formData.startDate,
+              endDate: formData.endDate,
+              budget: parseInt(formData.budget),
+              team: teamArray
+            }
+          : project
+      ));
+    } else {
+      // Add new project
+      const newProject = {
+        id: Math.max(...projects.map(p => p.id)) + 1,
+        name: formData.name,
+        client: formData.client,
+        status: formData.status,
+        progress: parseInt(formData.progress),
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        budget: parseInt(formData.budget),
+        team: teamArray
+      };
+      setProjects(prev => [...prev, newProject]);
+    }
+    
+    setShowModal(false);
+    setEditingProject(null);
+  };
+
+  // Delete project with confirmation
+  const handleDeleteProject = (projectId) => {
+    if (window.confirm('Are you sure you want to delete this project?')) {
+      setProjects(prev => prev.filter(project => project.id !== projectId));
+    }
+  };
+
+  // Close modal
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setEditingProject(null);
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -93,7 +206,7 @@ const Projects = () => {
           <p className="text-gray-600 mt-1">Manage and track all your projects</p>
         </div>
         <button 
-          onClick={() => setShowModal(true)}
+          onClick={handleAddProject}
           className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-200 hover:scale-105 flex items-center gap-2"
         >
           <Plus className="w-5 h-5" />
@@ -182,10 +295,16 @@ const Projects = () => {
                 <Eye className="w-4 h-4" />
                 View
               </button>
-              <button className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors duration-200">
+              <button 
+                onClick={() => handleEditProject(project)}
+                className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors duration-200"
+              >
                 <Edit className="w-4 h-4" />
               </button>
-              <button className="bg-red-100 text-red-700 px-4 py-2 rounded-lg hover:bg-red-200 transition-colors duration-200">
+              <button 
+                onClick={() => handleDeleteProject(project.id)}
+                className="bg-red-100 text-red-700 px-4 py-2 rounded-lg hover:bg-red-200 transition-colors duration-200"
+              >
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>
@@ -200,11 +319,167 @@ const Projects = () => {
           <h3 className="text-xl font-bold text-gray-900 mb-2">No projects found</h3>
           <p className="text-gray-600 mb-6">Try adjusting your search or filter criteria</p>
           <button 
-            onClick={() => setShowModal(true)}
+            onClick={handleAddProject}
             className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-200 hover:scale-105"
           >
             Create First Project
           </button>
+        </div>
+      )}
+
+      {/* Modal for Add/Edit Project */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">
+                {editingProject ? 'Edit Project' : 'Add New Project'}
+              </h2>
+              <button 
+                onClick={handleCloseModal}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={(e) => { e.preventDefault(); handleSaveProject(); }} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Project Name *
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter project name"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Client *
+                  </label>
+                  <input
+                    type="text"
+                    name="client"
+                    value={formData.client}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter client name"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Status
+                  </label>
+                  <select
+                    name="status"
+                    value={formData.status}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    {projectStatuses.filter(status => status !== 'All').map(status => (
+                      <option key={status} value={status}>{status}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Progress (%)
+                  </label>
+                  <input
+                    type="number"
+                    name="progress"
+                    value={formData.progress}
+                    onChange={handleInputChange}
+                    min="0"
+                    max="100"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="0"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    name="startDate"
+                    value={formData.startDate}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    End Date
+                  </label>
+                  <input
+                    type="date"
+                    name="endDate"
+                    value={formData.endDate}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Budget ($)
+                  </label>
+                  <input
+                    type="number"
+                    name="budget"
+                    value={formData.budget}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="0"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Team Members
+                  </label>
+                  <input
+                    type="text"
+                    name="team"
+                    value={formData.team}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter names separated by commas"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4 pt-6">
+                <button
+                  type="submit"
+                  className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center gap-2"
+                >
+                  <Save className="w-5 h-5" />
+                  {editingProject ? 'Update Project' : 'Create Project'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors duration-200"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
