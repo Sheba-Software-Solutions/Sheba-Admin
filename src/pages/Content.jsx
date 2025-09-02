@@ -507,10 +507,16 @@ const Content = () => {
                     ))}
                   </div>
                   <div className="flex items-center gap-2">
-                    <button className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                    <button 
+                      onClick={() => handleEdit(project, 'portfolio')}
+                      className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200"
+                    >
                       Edit
                     </button>
-                    <button className="bg-red-100 text-red-700 px-4 py-2 rounded-lg hover:bg-red-200 transition-colors duration-200">
+                    <button 
+                      onClick={() => handleDelete(project.id, 'portfolio')}
+                      className="bg-red-100 text-red-700 px-4 py-2 rounded-lg hover:bg-red-200 transition-colors duration-200"
+                    >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -583,10 +589,16 @@ const Content = () => {
                   </div>
                   <p className="text-gray-600 text-sm mb-4">{member.bio}</p>
                   <div className="flex items-center gap-2">
-                    <button className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                    <button 
+                      onClick={() => handleEdit(member, 'team')}
+                      className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200"
+                    >
                       Edit
                     </button>
-                    <button className="bg-red-100 text-red-700 px-4 py-2 rounded-lg hover:bg-red-200 transition-colors duration-200">
+                    <button 
+                      onClick={() => handleDelete(member.id, 'team')}
+                      className="bg-red-100 text-red-700 px-4 py-2 rounded-lg hover:bg-red-200 transition-colors duration-200"
+                    >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
