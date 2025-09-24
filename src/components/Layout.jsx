@@ -15,9 +15,12 @@ import {
   User
 } from 'lucide-react';
 
-const Layout = ({ children, userRole, onLogout }) => {
+const Layout = ({ children, user, onLogout }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+
+  // Extract user role from user object
+  const userRole = user?.role || 'admin';
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },

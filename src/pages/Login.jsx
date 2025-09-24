@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Lock, User, Shield } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { apiHelpers } from '../utils/api';
+import { useAuth } from '../hooks/useAuth';
 
 const Login = ({ onLogin }) => {
+  const { logoutOnRoleMismatch } = useAuth();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     username: '',
     password: '',
-    role: 'admin'
+    role: 'admin' // Default role
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -16,16 +21,50 @@ const Login = ({ onLogin }) => {
     setIsLoading(true);
     setError('');
 
-    // Simulate authentication
-    setTimeout(() => {
-      if (formData.username && formData.password) {
-        const token = 'mock-jwt-token-' + Date.now();
-        onLogin(token, formData.role);
+    console.log('Login attempt with:', { username: formData.username, password: '[HIDDEN]', role: formData.role });
+
+    try {
+      // Use the authentication context's login function
+      console.log('Calling onLogin...');
+      const result = await onLogin(formData);
+      console.log('Login result:', result);
+
+      if (!result.success) {
+        console.log('Login failed:', result.error);
+        setError(result.error || 'Login failed. Please check your credentials.');
       } else {
-        setError('Please enter valid credentials');
+        console.log('Login successful, validating role...');
+
+        // Check if the user role matches the selected role
+        const userRole = result.user?.role;
+        const selectedRole = formData.role;
+
+        console.log('User role:', userRole, 'Selected role:', selectedRole);
+
+        if (userRole !== selectedRole) {
+          // Role mismatch - logout and show error
+          console.log('Role mismatch - logging out');
+          await logoutOnRoleMismatch();
+          setError(`Access denied. You are logged in as ${userRole} but selected ${selectedRole} role.`);
+          return;
+        }
+
+        console.log('Role validation passed - login complete');
+        // Redirect to dashboard after successful login
+        navigate('/dashboard');
       }
+    } catch (err) {
+      console.error('Login error:', err);
+      if (err.response?.data?.detail) {
+        setError(err.response.data.detail);
+      } else if (err.response?.data?.non_field_errors) {
+        setError(err.response.data.non_field_errors[0]);
+      } else {
+        setError('Login failed. Please check your credentials.');
+      }
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const handleChange = (e) => {
@@ -105,13 +144,13 @@ const Login = ({ onLogin }) => {
             </div>
 
             {/* Role Selection */}
-            <div>
+            <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Role
               </label>
               <select
                 name="role"
-                value={formData.role}
+                value={formData.role || 'admin'}
                 onChange={handleChange}
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
               >

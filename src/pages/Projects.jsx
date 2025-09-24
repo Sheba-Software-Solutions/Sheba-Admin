@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Plus, 
   Search, 
@@ -13,71 +13,75 @@ import {
   X,
   Save
 } from 'lucide-react';
+import { FolderOpen } from 'lucide-react';
+import { apiHelpers } from '../utils/api';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const Projects = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [showModal, setShowModal] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
-  const [projects, setProjects] = useState([
-    {
-      id: 1,
-      name: 'EthioPay Mobile App',
-      client: 'EthioPay Solutions',
-      status: 'In Progress',
-      progress: 75,
-      startDate: '2024-01-15',
-      endDate: '2024-03-15',
-      budget: 45000,
-      team: ['John Doe', 'Jane Smith', 'Bob Wilson']
-    },
-    {
-      id: 2,
-      name: 'AgriTech Platform',
-      client: 'AgriTech Ethiopia',
-      status: 'Planning',
-      progress: 15,
-      startDate: '2024-02-01',
-      endDate: '2024-05-01',
-      budget: 65000,
-      team: ['Alice Johnson', 'Mike Brown']
-    },
-    {
-      id: 3,
-      name: 'HealthLink Website',
-      client: 'HealthLink Africa',
-      status: 'Completed',
-      progress: 100,
-      startDate: '2023-11-01',
-      endDate: '2024-01-01',
-      budget: 25000,
-      team: ['Sarah Davis', 'Tom Wilson']
-    },
-    {
-      id: 4,
-      name: 'EduTech Learning Portal',
-      client: 'EduTech Solutions',
-      status: 'Testing',
-      progress: 90,
-      startDate: '2023-12-01',
-      endDate: '2024-02-15',
-      budget: 35000,
-      team: ['David Lee', 'Emma Clark']
-    }
-  ]);
+  const [projects, setProjects] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [clientsOptions, setClientsOptions] = useState([]);
 
   const [formData, setFormData] = useState({
     name: '',
-    client: '',
-    status: 'Planning',
+    description: '',
+    client_id: '',
+    status: 'planning',
+    priority: 'medium',
     progress: 0,
-    startDate: '',
-    endDate: '',
+    start_date: '',
+    end_date: '',
     budget: '',
-    team: ''
+    technologies: '',
+    repository_url: '',
+    live_url: ''
   });
 
   const projectStatuses = ['All', 'Planning', 'In Progress', 'Testing', 'Completed', 'On Hold'];
+  const backendStatusOptions = [
+    { value: 'planning', label: 'Planning' },
+    { value: 'in_progress', label: 'In Progress' },
+    { value: 'testing', label: 'Testing' },
+    { value: 'completed', label: 'Completed' },
+    { value: 'on_hold', label: 'On Hold' },
+  ];
+  const priorityOptions = [
+    { value: 'low', label: 'Low' },
+    { value: 'medium', label: 'Medium' },
+    { value: 'high', label: 'High' },
+  ];
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        setIsLoading(true);
+        const response = await apiHelpers.getProjects({ ordering: '-created_at' });
+        const data = response?.data;
+        setProjects(Array.isArray(data) ? data : (data?.results || []));
+      } catch (error) {
+        console.error('Failed to load projects:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    const fetchClients = async () => {
+      try {
+        const response = await apiHelpers.getClients({ ordering: 'name' });
+        const data = response?.data;
+        const list = Array.isArray(data) ? data : (data?.results || []);
+        setClientsOptions(list);
+      } catch (error) {
+        console.error('Failed to load clients for selection:', error);
+        setClientsOptions([]);
+      }
+    };
+    fetchProjects();
+    fetchClients();
+  }, []);
 
   // Handle form input changes
   const handleInputChange = (e) => {
@@ -92,13 +96,17 @@ const Projects = () => {
   const handleAddProject = () => {
     setFormData({
       name: '',
-      client: '',
-      status: 'Planning',
+      description: '',
+      client_id: '',
+      status: 'planning',
+      priority: 'medium',
       progress: 0,
-      startDate: '',
-      endDate: '',
+      start_date: '',
+      end_date: '',
       budget: '',
-      team: ''
+      technologies: '',
+      repository_url: '',
+      live_url: ''
     });
     setEditingProject(null);
     setShowModal(true);
@@ -107,69 +115,62 @@ const Projects = () => {
   // Open modal for editing existing project
   const handleEditProject = (project) => {
     setFormData({
-      name: project.name,
-      client: project.client,
-      status: project.status,
-      progress: project.progress,
-      startDate: project.startDate,
-      endDate: project.endDate,
-      budget: project.budget,
-      team: Array.isArray(project.team) ? project.team.join(', ') : project.team
+      name: project.name || '',
+      description: project.description || '',
+      client_id: project.client?.id || '',
+      status: project.status || 'planning',
+      priority: project.priority || 'medium',
+      progress: project.progress || 0,
+      start_date: project.start_date || '',
+      end_date: project.end_date || '',
+      budget: project.budget || '',
+      technologies: Array.isArray(project.technologies) ? project.technologies.join(', ') : (project.technologies || ''),
+      repository_url: project.repository_url || '',
+      live_url: project.live_url || ''
     });
     setEditingProject(project);
     setShowModal(true);
   };
 
   // Save project (add or edit)
-  const handleSaveProject = () => {
-    if (!formData.name || !formData.client) {
-      alert('Please fill in all required fields');
+  const handleSaveProject = async () => {
+    if (!formData.name || !formData.client_id) {
+      alert('Please fill in required fields');
       return;
     }
-
-    const teamArray = formData.team.split(',').map(member => member.trim()).filter(member => member);
-    
-    if (editingProject) {
-      // Edit existing project
-      setProjects(prev => prev.map(project => 
-        project.id === editingProject.id 
-          ? {
-              ...project,
-              name: formData.name,
-              client: formData.client,
-              status: formData.status,
-              progress: parseInt(formData.progress),
-              startDate: formData.startDate,
-              endDate: formData.endDate,
-              budget: parseInt(formData.budget),
-              team: teamArray
-            }
-          : project
-      ));
-    } else {
-      // Add new project
-      const newProject = {
-        id: Math.max(...projects.map(p => p.id)) + 1,
-        name: formData.name,
-        client: formData.client,
-        status: formData.status,
-        progress: parseInt(formData.progress),
-        startDate: formData.startDate,
-        endDate: formData.endDate,
-        budget: parseInt(formData.budget),
-        team: teamArray
-      };
-      setProjects(prev => [...prev, newProject]);
+    const payload = {
+      ...formData,
+      budget: formData.budget ? parseInt(formData.budget) : 0,
+      progress: formData.progress ? parseInt(formData.progress) : 0,
+      technologies: formData.technologies
+        ? formData.technologies.split(',').map(t => t.trim()).filter(Boolean)
+        : [],
+    };
+    try {
+      if (editingProject) {
+        const response = await apiHelpers.updateProject(editingProject.id, payload);
+        setProjects(prev => prev.map(p => p.id === editingProject.id ? response.data : p));
+      } else {
+        const response = await apiHelpers.createProject(payload);
+        setProjects(prev => [response.data, ...prev]);
+      }
+      setShowModal(false);
+      setEditingProject(null);
+    } catch (error) {
+      console.error('Failed to save project:', error);
+      alert('Failed to save project');
     }
-    
-    setShowModal(false);
-    setEditingProject(null);
   };
 
   // Delete project with confirmation
-  const handleDeleteProject = (projectId) => {
-    if (window.confirm('Are you sure you want to delete this project?')) {
+  const handleDeleteProject = async (projectId) => {
+    if (!window.confirm('Are you sure you want to delete this project?')) return;
+    try {
+      await apiHelpers.deleteProject(projectId);
       setProjects(prev => prev.filter(project => project.id !== projectId));
+    } catch (error) {
+      console.error('Failed to delete project:', error);
+      alert('Failed to delete project');
     }
   };
 
@@ -191,9 +192,11 @@ const Projects = () => {
   };
 
   const filteredProjects = projects.filter(project => {
-    const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         project.client.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'All' || project.status === statusFilter;
+    const matchesSearch = (project.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (project.client?.name || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const backendLabel = ((project.status || '')
+      .replaceAll('_', ' ') || '').replace(/^./, c => c.toUpperCase());
+    const matchesStatus = statusFilter === 'All' || backendLabel.toLowerCase() === statusFilter.toLowerCase();
     return matchesSearch && matchesStatus;
   });
 
@@ -247,15 +250,19 @@ const Projects = () => {
 
       {/* Projects Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredProjects.map((project) => (
+        {isLoading ? (
+          <div className="col-span-full flex items-center justify-center min-h-64"><LoadingSpinner /></div>
+        ) : filteredProjects.map((project) => (
           <div key={project.id} className="bg-white rounded-2xl p-6 shadow-lg card-hover">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">{project.name}</h3>
-                <p className="text-gray-600">{project.client}</p>
+                <p className="text-gray-600">{project.client?.name}</p>
               </div>
-              <span className={`status-badge ${getStatusColor(project.status)}`}>
-                {project.status}
+              <span className={`status-badge ${getStatusColor(
+                (project.status || 'Planning').replace('_', ' ').replace(/^./, c => c.toUpperCase())
+              )}`}>
+                {(project.status || 'planning').replace('_', ' ').replace(/^./, c => c.toUpperCase())}
               </span>
             </div>
 
@@ -277,15 +284,19 @@ const Projects = () => {
             <div className="space-y-3 mb-4">
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <Calendar className="w-4 h-4" />
-                <span>{new Date(project.startDate).toLocaleDateString()} - {new Date(project.endDate).toLocaleDateString()}</span>
+                <span>
+                  {project.start_date ? new Date(project.start_date).toLocaleDateString() : '—'}
+                  {' '} - {' '}
+                  {project.end_date ? new Date(project.end_date).toLocaleDateString() : '—'}
+                </span>
               </div>
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <DollarSign className="w-4 h-4" />
-                <span>${project.budget.toLocaleString()}</span>
+                <span>${(project.budget || 0).toLocaleString()}</span>
               </div>
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <User className="w-4 h-4" />
-                <span>{project.team.length} team members</span>
+                <span>{(project.assigned_to || []).length} team members</span>
               </div>
             </div>
 
@@ -364,15 +375,18 @@ const Projects = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Client *
                   </label>
-                  <input
-                    type="text"
-                    name="client"
-                    value={formData.client}
+                  <select
+                    name="client_id"
+                    value={formData.client_id}
                     onChange={handleInputChange}
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter client name"
                     required
-                  />
+                  >
+                    <option value="">Select a client</option>
+                    {clientsOptions.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}{c.company ? ` — ${c.company}` : ''}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
@@ -385,8 +399,8 @@ const Projects = () => {
                     onChange={handleInputChange}
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    {projectStatuses.filter(status => status !== 'All').map(status => (
-                      <option key={status} value={status}>{status}</option>
+                    {backendStatusOptions.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
                     ))}
                   </select>
                 </div>
@@ -413,8 +427,8 @@ const Projects = () => {
                   </label>
                   <input
                     type="date"
-                    name="startDate"
-                    value={formData.startDate}
+                    name="start_date"
+                    value={formData.start_date}
                     onChange={handleInputChange}
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
@@ -426,8 +440,8 @@ const Projects = () => {
                   </label>
                   <input
                     type="date"
-                    name="endDate"
-                    value={formData.endDate}
+                    name="end_date"
+                    value={formData.end_date}
                     onChange={handleInputChange}
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
@@ -449,15 +463,52 @@ const Projects = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Team Members
+                    Priority
                   </label>
-                  <input
-                    type="text"
-                    name="team"
-                    value={formData.team}
+                  <select
+                    name="priority"
+                    value={formData.priority}
                     onChange={handleInputChange}
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter names separated by commas"
+                  >
+                    {priorityOptions.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Description
+                  </label>
+                  <textarea
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    rows={3}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Project description"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Repository URL</label>
+                  <input
+                    type="url"
+                    name="repository_url"
+                    value={formData.repository_url}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="https://github.com/org/repo"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Live URL</label>
+                  <input
+                    type="url"
+                    name="live_url"
+                    value={formData.live_url}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="https://example.com"
                   />
                 </div>
               </div>

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { 
+import React, { useEffect, useState } from 'react';
+import {
   Plus, 
   Search, 
   Eye, 
@@ -15,80 +15,45 @@ import {
   Save,
   Users
 } from 'lucide-react';
+import { apiHelpers } from '../utils/api';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const Clients = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
-  const [clients, setClients] = useState([
-    {
-      id: 1,
-      name: 'EthioPay Solutions',
-      contact: 'Alemayehu Tadesse',
-      email: 'alemayehu@ethiopay.com',
-      phone: '+251 11 123 4567',
-      company: 'EthioPay Solutions',
-      location: 'Addis Ababa, Ethiopia',
-      joinDate: '2023-06-15',
-      totalProjects: 3,
-      activeProjects: 1,
-      totalValue: 125000,
-      status: 'Active'
-    },
-    {
-      id: 2,
-      name: 'AgriTech Ethiopia',
-      contact: 'Meron Haile',
-      email: 'meron@agritech.et',
-      phone: '+251 91 234 5678',
-      company: 'AgriTech Ethiopia',
-      location: 'Bahir Dar, Ethiopia',
-      joinDate: '2023-08-20',
-      totalProjects: 2,
-      activeProjects: 1,
-      totalValue: 85000,
-      status: 'Active'
-    },
-    {
-      id: 3,
-      name: 'HealthLink Africa',
-      contact: 'Daniel Bekele',
-      email: 'daniel@healthlink.com',
-      phone: '+251 92 345 6789',
-      company: 'HealthLink Africa',
-      location: 'Dire Dawa, Ethiopia',
-      joinDate: '2023-04-10',
-      totalProjects: 1,
-      activeProjects: 0,
-      totalValue: 45000,
-      status: 'Inactive'
-    },
-    {
-      id: 4,
-      name: 'EduTech Solutions',
-      contact: 'Sarah Mekonnen',
-      email: 'sarah@edutech.et',
-      phone: '+251 93 456 7890',
-      company: 'EduTech Solutions',
-      location: 'Mekelle, Ethiopia',
-      joinDate: '2023-09-05',
-      totalProjects: 1,
-      activeProjects: 1,
-      totalValue: 35000,
-      status: 'Active'
-    }
-  ]);
+  const [clients, setClients] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [formData, setFormData] = useState({
     name: '',
-    contact: '',
     email: '',
     phone: '',
     company: '',
-    location: '',
-    joinDate: '',
-    status: 'Active'
+    address: '',
+    website: '',
+    client_type: 'business',
+    contact_person: '',
+    is_active: true,
+    notes: ''
   });
+
+  // Load clients from backend
+  useEffect(() => {
+    const fetchClients = async () => {
+      try {
+        setIsLoading(true);
+        const response = await apiHelpers.getClients({ ordering: '-created_at' });
+        const data = response?.data;
+        setClients(Array.isArray(data) ? data : (data?.results || []));
+      } catch (error) {
+        console.error('Failed to load clients:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchClients();
+  }, []);
 
   // Handle form input changes
   const handleInputChange = (e) => {
@@ -103,13 +68,15 @@ const Clients = () => {
   const handleAddClient = () => {
     setFormData({
       name: '',
-      contact: '',
       email: '',
       phone: '',
       company: '',
-      location: '',
-      joinDate: '',
-      status: 'Active'
+      address: '',
+      website: '',
+      client_type: 'business',
+      contact_person: '',
+      is_active: true,
+      notes: ''
     });
     setEditingClient(null);
     setShowModal(true);
@@ -118,70 +85,52 @@ const Clients = () => {
   // Open modal for editing existing client
   const handleEditClient = (client) => {
     setFormData({
-      name: client.name,
-      contact: client.contact,
-      email: client.email,
-      phone: client.phone,
-      company: client.company,
-      location: client.location,
-      joinDate: client.joinDate,
-      status: client.status
+      name: client.name || '',
+      email: client.email || '',
+      phone: client.phone || '',
+      company: client.company || '',
+      address: client.address || '',
+      website: client.website || '',
+      client_type: client.client_type || 'business',
+      contact_person: client.contact_person || '',
+      is_active: client.is_active ?? true,
+      notes: client.notes || ''
     });
     setEditingClient(client);
     setShowModal(true);
   };
 
   // Save client (add or edit)
-  const handleSaveClient = () => {
+  const handleSaveClient = async () => {
     if (!formData.name || !formData.email) {
-      alert('Please fill in all required fields');
+      alert('Please fill in required fields');
       return;
     }
-
-    if (editingClient) {
-      // Edit existing client
-      setClients(prev => prev.map(client => 
-        client.id === editingClient.id 
-          ? {
-              ...client,
-              name: formData.name,
-              contact: formData.contact,
-              email: formData.email,
-              phone: formData.phone,
-              company: formData.company,
-              location: formData.location,
-              joinDate: formData.joinDate,
-              status: formData.status
-            }
-          : client
-      ));
-    } else {
-      // Add new client
-      const newClient = {
-        id: Math.max(...clients.map(c => c.id)) + 1,
-        name: formData.name,
-        contact: formData.contact,
-        email: formData.email,
-        phone: formData.phone,
-        company: formData.company,
-        location: formData.location,
-        joinDate: formData.joinDate,
-        totalProjects: 0,
-        activeProjects: 0,
-        totalValue: 0,
-        status: formData.status
-      };
-      setClients(prev => [...prev, newClient]);
+    try {
+      if (editingClient) {
+        const response = await apiHelpers.updateClient(editingClient.id, formData);
+        setClients(prev => prev.map(c => c.id === editingClient.id ? response.data : c));
+      } else {
+        const response = await apiHelpers.createClient(formData);
+        setClients(prev => [response.data, ...prev]);
+      }
+      setShowModal(false);
+      setEditingClient(null);
+    } catch (error) {
+      console.error('Failed to save client:', error);
+      alert('Failed to save client');
     }
-    
-    setShowModal(false);
-    setEditingClient(null);
   };
 
   // Delete client with confirmation
-  const handleDeleteClient = (clientId) => {
-    if (window.confirm('Are you sure you want to delete this client?')) {
+  const handleDeleteClient = async (clientId) => {
+    if (!window.confirm('Are you sure you want to delete this client?')) return;
+    try {
+      await apiHelpers.deleteClient(clientId);
       setClients(prev => prev.filter(client => client.id !== clientId));
+    } catch (error) {
+      console.error('Failed to delete client:', error);
+      alert('Failed to delete client');
     }
   };
 
@@ -201,9 +150,9 @@ const Clients = () => {
   };
 
   const filteredClients = clients.filter(client =>
-    client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.contact.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.company.toLowerCase().includes(searchTerm.toLowerCase())
+    (client.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (client.company || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (client.email || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -257,15 +206,17 @@ const Clients = () => {
 
       {/* Clients Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredClients.map((client) => (
+        {isLoading ? (
+          <div className="col-span-full flex items-center justify-center min-h-64"><LoadingSpinner /></div>
+        ) : filteredClients.map((client) => (
           <div key={client.id} className="bg-white rounded-2xl p-6 shadow-lg card-hover">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h3 className="text-xl font-bold text-gray-900 mb-1">{client.name}</h3>
-                <p className="text-gray-600">{client.contact}</p>
+                <p className="text-gray-600">{client.contact_person}</p>
               </div>
-              <span className={`status-badge ${getStatusColor(client.status)}`}>
-                {client.status}
+              <span className={`status-badge ${getStatusColor(client.is_active ? 'Active' : 'Inactive')}`}>
+                {client.is_active ? 'Active' : 'Inactive'}
               </span>
             </div>
 
@@ -281,27 +232,29 @@ const Clients = () => {
               </div>
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <MapPin className="w-4 h-4" />
-                <span>{client.location}</span>
+                <span>{client.address}</span>
               </div>
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <Calendar className="w-4 h-4" />
-                <span>Joined {new Date(client.joinDate).toLocaleDateString()}</span>
+                {client.created_at && (
+                  <span>Created {new Date(client.created_at).toLocaleDateString()}</span>
+                )}
               </div>
             </div>
 
             {/* Project Stats */}
             <div className="grid grid-cols-3 gap-4 mb-4 p-4 bg-gray-50 rounded-xl">
               <div className="text-center">
-                <p className="text-lg font-bold text-gray-900">{client.totalProjects}</p>
+                <p className="text-lg font-bold text-gray-900">{client.total_projects ?? 0}</p>
                 <p className="text-xs text-gray-600">Total Projects</p>
               </div>
               <div className="text-center">
-                <p className="text-lg font-bold text-blue-600">{client.activeProjects}</p>
+                <p className="text-lg font-bold text-blue-600">{client.active_projects ?? 0}</p>
                 <p className="text-xs text-gray-600">Active</p>
               </div>
               <div className="text-center">
-                <p className="text-lg font-bold text-green-600">${(client.totalValue / 1000).toFixed(0)}K</p>
-                <p className="text-xs text-gray-600">Total Value</p>
+                <p className="text-lg font-bold text-green-600">{client.client_type}</p>
+                <p className="text-xs text-gray-600">Type</p>
               </div>
             </div>
 

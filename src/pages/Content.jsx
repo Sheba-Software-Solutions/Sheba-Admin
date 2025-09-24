@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Plus, 
   Search, 
@@ -14,6 +14,8 @@ import {
   X,
   FolderOpen
 } from 'lucide-react';
+import { apiHelpers } from '../utils/api';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const Content = () => {
   const [activeTab, setActiveTab] = useState('website');
@@ -23,12 +25,8 @@ const Content = () => {
   const [modalType, setModalType] = useState('');
 
   // Website Content State
-  const [websiteContent, setWebsiteContent] = useState([
-    { id: 1, section: 'Hero Section', title: 'Welcome to Sheba Software', content: 'Transform your vision into powerful, scalable software solutions.', lastModified: '2024-01-15' },
-    { id: 2, section: 'About Us', title: 'About Sheba Software', content: 'We are a leading software development company in Ethiopia.', lastModified: '2024-01-14' },
-    { id: 3, section: 'Services', title: 'Our Services', content: 'Custom software development, web applications, mobile apps.', lastModified: '2024-01-13' },
-    { id: 4, section: 'Contact Info', title: 'Contact Information', content: 'Get in touch with us for your next project.', lastModified: '2024-01-12' }
-  ]);
+  const [websiteContent, setWebsiteContent] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const tabs = [
     { id: 'website', name: 'Website Content', icon: Globe },
@@ -39,131 +37,16 @@ const Content = () => {
   ];
 
   // Blog Posts State
-  const [blogPosts, setBlogPosts] = useState([
-    {
-      id: 1,
-      title: 'The Future of Software Development in Ethiopia',
-      author: 'Abebe Tadesse',
-      status: 'Published',
-      publishDate: '2024-01-15',
-      views: 1250,
-      category: 'Technology',
-      content: 'Exploring the future trends in software development...'
-    },
-    {
-      id: 2,
-      title: 'Building Scalable Web Applications',
-      author: 'Meron Haile',
-      status: 'Draft',
-      publishDate: null,
-      views: 0,
-      category: 'Development',
-      content: 'Best practices for building scalable applications...'
-    },
-    {
-      id: 3,
-      title: 'Digital Transformation in Ethiopian Businesses',
-      author: 'Daniel Bekele',
-      status: 'Published',
-      publishDate: '2024-01-10',
-      views: 890,
-      category: 'Business',
-      content: 'How digital transformation is changing business...'
-    }
-  ]);
+  const [blogPosts, setBlogPosts] = useState([]);
 
   // Portfolio Projects State
-  const [portfolioProjects, setPortfolioProjects] = useState([
-    {
-      id: 1,
-      title: 'EthioPay Mobile App',
-      category: 'FinTech',
-      image: 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=400',
-      status: 'Featured',
-      technologies: ['React Native', 'Node.js', 'MongoDB'],
-      description: 'A comprehensive mobile payment solution for Ethiopia.'
-    },
-    {
-      id: 2,
-      title: 'AgriTech Platform',
-      category: 'Agriculture',
-      image: 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=400',
-      status: 'Active',
-      technologies: ['React', 'Python', 'PostgreSQL'],
-      description: 'Digital platform connecting farmers with modern agricultural solutions.'
-    },
-    {
-      id: 3,
-      title: 'HealthLink Website',
-      category: 'Healthcare',
-      image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=400',
-      status: 'Active',
-      technologies: ['Next.js', 'Tailwind', 'Strapi'],
-      description: 'Healthcare management system for medical professionals.'
-    }
-  ]);
+  const [portfolioProjects, setPortfolioProjects] = useState([]);
 
   // Team Members State
-  const [teamMembers, setTeamMembers] = useState([
-    {
-      id: 1,
-      name: 'Abebe Tadesse',
-      role: 'CEO & Founder',
-      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300',
-      bio: 'Visionary leader with 10+ years in software development and business strategy.',
-      status: 'Active',
-      email: 'abebe@shebasoftware.com',
-      phone: '+251 11 123 4567'
-    },
-    {
-      id: 2,
-      name: 'Meron Haile',
-      role: 'CTO',
-      image: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=300',
-      bio: 'Technical expert specializing in scalable architecture and emerging technologies.',
-      status: 'Active',
-      email: 'meron@shebasoftware.com',
-      phone: '+251 91 234 5678'
-    },
-    {
-      id: 3,
-      name: 'Daniel Bekele',
-      role: 'Lead Developer',
-      image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300',
-      bio: 'Full-stack developer passionate about creating elegant, efficient solutions.',
-      status: 'Active',
-      email: 'daniel@shebasoftware.com',
-      phone: '+251 92 345 6789'
-    }
-  ]);
+  const [teamMembers, setTeamMembers] = useState([]);
 
   // Services State
-  const [services, setServices] = useState([
-    {
-      id: 1,
-      title: 'Custom Software Development',
-      description: 'Transform your vision into powerful, scalable software solutions.',
-      features: ['Enterprise Software', 'API Development', 'Legacy Modernization'],
-      status: 'Active',
-      price: 'Starting from $5,000'
-    },
-    {
-      id: 2,
-      title: 'Website Development',
-      description: 'Create stunning, responsive websites that captivate your audience.',
-      features: ['Responsive Design', 'E-commerce', 'CMS'],
-      status: 'Active',
-      price: 'Starting from $2,000'
-    },
-    {
-      id: 3,
-      title: 'Mobile App Development',
-      description: 'Build native and cross-platform mobile applications.',
-      features: ['iOS & Android', 'Cross-Platform', 'UI/UX Design'],
-      status: 'Active',
-      price: 'Starting from $8,000'
-    }
-  ]);
+  const [services, setServices] = useState([]);
 
   // Form Data State
   const [formData, setFormData] = useState({
@@ -191,6 +74,41 @@ const Content = () => {
     features: '',
     price: ''
   });
+
+  // Load data from backend per active tab
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        if (activeTab === 'website') {
+          const res = await apiHelpers.getWebsiteContent({ ordering: '-updated_at' });
+          const data = res?.data;
+          setWebsiteContent(Array.isArray(data) ? data : (data?.results || []));
+        } else if (activeTab === 'blog') {
+          const res = await apiHelpers.getBlogPosts({ ordering: '-created_at' });
+          const data = res?.data;
+          setBlogPosts(Array.isArray(data) ? data : (data?.results || []));
+        } else if (activeTab === 'portfolio') {
+          const res = await apiHelpers.getPortfolioProjects({ ordering: 'order' });
+          const data = res?.data;
+          setPortfolioProjects(Array.isArray(data) ? data : (data?.results || []));
+        } else if (activeTab === 'services') {
+          const res = await apiHelpers.getServices({ ordering: 'order' });
+          const data = res?.data;
+          setServices(Array.isArray(data) ? data : (data?.results || []));
+        } else if (activeTab === 'team') {
+          const res = await apiHelpers.getTeamMembers({ ordering: 'order' });
+          const data = res?.data;
+          setTeamMembers(Array.isArray(data) ? data : (data?.results || []));
+        }
+      } catch (error) {
+        console.error('Failed to load content:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadData();
+  }, [activeTab]);
 
   // CRUD Handler Functions
   const handleInputChange = (e) => {
@@ -238,7 +156,7 @@ const Content = () => {
     setShowModal(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.title && !formData.name && !formData.section) {
       alert('Please fill in required fields');
       return;
@@ -248,108 +166,132 @@ const Content = () => {
     
     switch (modalType) {
       case 'website':
-        if (editingItem) {
-          setWebsiteContent(prev => prev.map(item => 
-            item.id === editingItem.id 
-              ? { ...item, section: formData.section, title: formData.title, content: formData.content, lastModified: currentDate }
-              : item
-          ));
-        } else {
-          const newItem = {
-            id: Math.max(...websiteContent.map(w => w.id)) + 1,
-            section: formData.section,
-            title: formData.title,
-            content: formData.content,
-            lastModified: currentDate
-          };
-          setWebsiteContent(prev => [...prev, newItem]);
+        try {
+          if (editingItem) {
+            const res = await apiHelpers.updateWebsiteContent(editingItem.id, {
+              section: formData.section,
+              title: formData.title,
+              content: formData.content,
+              is_active: true,
+            });
+            setWebsiteContent(prev => prev.map(item => item.id === editingItem.id ? res.data : item));
+          } else {
+            const res = await apiHelpers.createWebsiteContent({
+              section: formData.section,
+              title: formData.title,
+              content: formData.content,
+              is_active: true,
+            });
+            setWebsiteContent(prev => [res.data, ...prev]);
+          }
+        } catch (e) {
+          console.error('Failed to save website content:', e);
+          alert('Failed to save');
+          return;
         }
         break;
         
       case 'blog':
-        if (editingItem) {
-          setBlogPosts(prev => prev.map(item => 
-            item.id === editingItem.id 
-              ? { ...item, title: formData.title, author: formData.author, category: formData.category, content: formData.content, status: formData.status, publishDate: formData.publishDate }
-              : item
-          ));
-        } else {
-          const newItem = {
-            id: Math.max(...blogPosts.map(b => b.id)) + 1,
+        try {
+          const payload = {
             title: formData.title,
-            author: formData.author,
-            category: formData.category,
             content: formData.content,
-            status: formData.status,
-            publishDate: formData.publishDate,
-            views: 0
+            excerpt: formData.content?.slice(0, 140) || '',
+            category: formData.category,
+            status: formData.status.toLowerCase(),
+            published_at: formData.publishDate || null,
+            author_id: 1,
           };
-          setBlogPosts(prev => [...prev, newItem]);
+          if (editingItem) {
+            const res = await apiHelpers.updateBlogPost(editingItem.id, payload);
+            setBlogPosts(prev => prev.map(item => item.id === editingItem.id ? res.data : item));
+          } else {
+            const res = await apiHelpers.createBlogPost(payload);
+            setBlogPosts(prev => [res.data, ...prev]);
+          }
+        } catch (e) {
+          console.error('Failed to save blog post:', e);
+          alert('Failed to save');
+          return;
         }
         break;
         
       case 'portfolio':
-        const techArray = formData.technologies.split(',').map(t => t.trim()).filter(t => t);
-        if (editingItem) {
-          setPortfolioProjects(prev => prev.map(item => 
-            item.id === editingItem.id 
-              ? { ...item, title: formData.title, category: formData.category, image: formData.image, description: formData.description, technologies: techArray, status: formData.status }
-              : item
-          ));
-        } else {
-          const newItem = {
-            id: Math.max(...portfolioProjects.map(p => p.id)) + 1,
+        try {
+          const techArray = formData.technologies.split(',').map(t => t.trim()).filter(t => t);
+          const payload = {
             title: formData.title,
             category: formData.category,
             image: formData.image,
             description: formData.description,
             technologies: techArray,
-            status: formData.status
+            status: formData.status.toLowerCase(),
+            project_url: formData.project_url || '',
+            github_url: formData.github_url || '',
           };
-          setPortfolioProjects(prev => [...prev, newItem]);
+          if (editingItem) {
+            const res = await apiHelpers.updatePortfolioProject(editingItem.id, payload);
+            setPortfolioProjects(prev => prev.map(item => item.id === editingItem.id ? res.data : item));
+          } else {
+            const res = await apiHelpers.createPortfolioProject(payload);
+            setPortfolioProjects(prev => [res.data, ...prev]);
+          }
+        } catch (e) {
+          console.error('Failed to save portfolio project:', e);
+          alert('Failed to save');
+          return;
         }
         break;
         
       case 'services':
-        const featuresArray = formData.features.split(',').map(f => f.trim()).filter(f => f);
-        if (editingItem) {
-          setServices(prev => prev.map(item => 
-            item.id === editingItem.id 
-              ? { ...item, title: formData.title, description: formData.description, features: featuresArray, price: formData.price, status: formData.status }
-              : item
-          ));
-        } else {
-          const newItem = {
-            id: Math.max(...services.map(s => s.id)) + 1,
+        try {
+          const featuresArray = formData.features.split(',').map(f => f.trim()).filter(f => f);
+          const payload = {
             title: formData.title,
             description: formData.description,
             features: featuresArray,
             price: formData.price,
-            status: formData.status
+            status: formData.status.toLowerCase(),
+            icon: formData.icon || '',
           };
-          setServices(prev => [...prev, newItem]);
+          if (editingItem) {
+            const res = await apiHelpers.updateService(editingItem.id, payload);
+            setServices(prev => prev.map(item => item.id === editingItem.id ? res.data : item));
+          } else {
+            const res = await apiHelpers.createService(payload);
+            setServices(prev => [res.data, ...prev]);
+          }
+        } catch (e) {
+          console.error('Failed to save service:', e);
+          alert('Failed to save');
+          return;
         }
         break;
         
       case 'team':
-        if (editingItem) {
-          setTeamMembers(prev => prev.map(item => 
-            item.id === editingItem.id 
-              ? { ...item, name: formData.name, role: formData.role, bio: formData.bio, email: formData.email, phone: formData.phone, image: formData.image, status: formData.status }
-              : item
-          ));
-        } else {
-          const newItem = {
-            id: Math.max(...teamMembers.map(t => t.id)) + 1,
+        try {
+          const payload = {
             name: formData.name,
             role: formData.role,
             bio: formData.bio,
             email: formData.email,
             phone: formData.phone,
             image: formData.image,
-            status: formData.status
+            status: formData.status.toLowerCase(),
+            linkedin_url: formData.linkedin_url || '',
+            github_url: formData.github_url || ''
           };
-          setTeamMembers(prev => [...prev, newItem]);
+          if (editingItem) {
+            const res = await apiHelpers.updateTeamMember(editingItem.id, payload);
+            setTeamMembers(prev => prev.map(item => item.id === editingItem.id ? res.data : item));
+          } else {
+            const res = await apiHelpers.createTeamMember(payload);
+            setTeamMembers(prev => [res.data, ...prev]);
+          }
+        } catch (e) {
+          console.error('Failed to save team member:', e);
+          alert('Failed to save');
+          return;
         }
         break;
     }
@@ -358,25 +300,34 @@ const Content = () => {
     setEditingItem(null);
   };
 
-  const handleDelete = (id, type) => {
-    if (window.confirm('Are you sure you want to delete this item?')) {
+  const handleDelete = async (id, type) => {
+    if (!window.confirm('Are you sure you want to delete this item?')) return;
+    try {
       switch (type) {
         case 'website':
+          await apiHelpers.deleteWebsiteContent(id);
           setWebsiteContent(prev => prev.filter(item => item.id !== id));
           break;
         case 'blog':
+          await apiHelpers.deleteBlogPost(id);
           setBlogPosts(prev => prev.filter(item => item.id !== id));
           break;
         case 'portfolio':
+          await apiHelpers.deletePortfolioProject(id);
           setPortfolioProjects(prev => prev.filter(item => item.id !== id));
           break;
         case 'services':
+          await apiHelpers.deleteService(id);
           setServices(prev => prev.filter(item => item.id !== id));
           break;
         case 'team':
+          await apiHelpers.deleteTeamMember(id);
           setTeamMembers(prev => prev.filter(item => item.id !== id));
           break;
       }
+    } catch (e) {
+      console.error('Failed to delete item:', e);
+      alert('Failed to delete');
     }
   };
 

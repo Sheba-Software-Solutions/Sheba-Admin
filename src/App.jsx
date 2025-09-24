@@ -1,5 +1,6 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { AuthProvider, useAuth } from './hooks/useAuth';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
@@ -10,43 +11,52 @@ import Settings from './pages/Settings';
 import Layout from './components/Layout';
 import Toast from './components/Toast';
 import { useToast } from './hooks/useToast';
+import LoadingSpinner from './components/LoadingSpinner';
 
-function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userRole, setUserRole] = useState(null);
+// Layout wrapper for authenticated routes
+const AuthenticatedLayout = () => {
+  const { user, logout } = useAuth();
+  const { showToast } = useToast();
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    // Check if user is already logged in
-    const token = localStorage.getItem('adminToken');
-    const role = localStorage.getItem('userRole');
-    if (token && role) {
-      setIsAuthenticated(true);
-      setUserRole(role);
+  const handleLogout = async () => {
+    try {
+      await logout();
+      showToast('Successfully logged out', 'success');
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Still logout locally even if API call fails
+      logout();
+      navigate('/login');
     }
-  }, []);
-
-  const handleLogin = (token, role) => {
-    localStorage.setItem('adminToken', token);
-    localStorage.setItem('userRole', role);
-    setIsAuthenticated(true);
-    setUserRole(role);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('adminToken');
-    localStorage.removeItem('userRole');
-    setIsAuthenticated(false);
-    setUserRole(null);
-  };
+  return (
+    <Layout user={user} onLogout={handleLogout}>
+      <Outlet />
+    </Layout>
+  );
+};
 
-  if (!isAuthenticated) {
-    return <Login onLogin={handleLogin} />;
+// App content component that uses auth context
+function AppContent() {
+  const { isAuthenticated, isLoading, login } = useAuth();
+
+  // Show loading spinner while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <LoadingSpinner size="large" />
+      </div>
+    );
   }
 
   return (
     <BrowserRouter>
-      <Layout userRole={userRole} onLogout={handleLogout}>
-        <Routes>
+      <Routes>
+        <Route path="/login" element={<Login onLogin={login} />} />
+        <Route element={<AuthenticatedLayout />}>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/projects" element={<Projects />} />
@@ -54,9 +64,20 @@ function App() {
           <Route path="/content" element={<Content />} />
           <Route path="/communication" element={<Communication />} />
           <Route path="/settings" element={<Settings />} />
-        </Routes>
-      </Layout>
+        </Route>
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
     </BrowserRouter>
+  );
+}
+
+// Main App component that provides the AuthProvider
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+      <Toast />
+    </AuthProvider>
   );
 }
 

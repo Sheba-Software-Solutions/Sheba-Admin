@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  TrendingUp, 
-  Users, 
-  FolderOpen, 
+import {
+  TrendingUp,
+  Users,
+  FolderOpen,
   DollarSign,
   Activity,
   Clock,
@@ -14,9 +14,78 @@ import {
   Eye
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
+import { apiHelpers } from '../utils/api';
+import { useToast } from '../hooks/useToast';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const Dashboard = () => {
-  const [stats, setStats] = useState({
+  const [overviewData, setOverviewData] = useState(null);
+  const [recentActivities, setRecentActivities] = useState([]);
+  const [metricsChart, setMetricsChart] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { showToast } = useToast();
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setIsLoading(true);
+
+      // Fetch dashboard overview data
+      const overviewResponse = await apiHelpers.getDashboardOverview();
+      setOverviewData(overviewResponse.data);
+
+      // Fetch recent activities
+      const activitiesResponse = await apiHelpers.getRecentActivities();
+      setRecentActivities(activitiesResponse.data);
+
+      // Fetch metrics chart data
+      const chartResponse = await apiHelpers.getMetricsChart();
+      setMetricsChart(chartResponse.data);
+
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      showToast('Failed to load dashboard data', 'error');
+
+      // Set fallback data if API fails
+      setOverviewData({
+        projects: { total: 45, active: 12, completed: 28, completion_rate: 62 },
+        clients: { total: 28, active: 24 },
+        content: { blog_posts: 15, published_posts: 12 },
+        communication: { pending_contacts: 3 },
+        activity: { recent_activities: 8 }
+      });
+      setRecentActivities([
+        { id: 1, description: 'New project created', model_name: 'EthioPay Mobile App', created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), action: 'create' },
+        { id: 2, description: 'Client meeting scheduled', model_name: 'AgriTech Platform', created_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(), action: 'update' },
+        { id: 3, description: 'Project completed', model_name: 'HealthLink Website', created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), action: 'delete' },
+        { id: 4, description: 'New client onboarded', model_name: 'TechCorp Solutions', created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), action: 'login' }
+      ]);
+      setMetricsChart([
+        { month: 'Jan', revenue: 65000, projects: 8 },
+        { month: 'Feb', revenue: 72000, projects: 10 },
+        { month: 'Mar', revenue: 68000, projects: 9 },
+        { month: 'Apr', revenue: 78000, projects: 12 },
+        { month: 'May', revenue: 85000, projects: 15 },
+        { month: 'Jun', revenue: 92000, projects: 18 }
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Calculate stats from API data
+  const stats = overviewData ? {
+    totalProjects: overviewData.projects?.total || 45,
+    activeProjects: overviewData.projects?.active || 12,
+    totalClients: overviewData.clients?.total || 28,
+    monthlyRevenue: 85000, // Will be populated when revenue metrics are added
+    projectsChange: 12,
+    clientsChange: 8,
+    revenueChange: 15
+  } : {
     totalProjects: 45,
     activeProjects: 12,
     totalClients: 28,
@@ -24,28 +93,41 @@ const Dashboard = () => {
     projectsChange: 12,
     clientsChange: 8,
     revenueChange: 15
-  });
+  };
 
-  const revenueData = [
-    { month: 'Jan', revenue: 65000 },
-    { month: 'Feb', revenue: 72000 },
-    { month: 'Mar', revenue: 68000 },
-    { month: 'Apr', revenue: 78000 },
-    { month: 'May', revenue: 85000 },
-    { month: 'Jun', revenue: 92000 }
+  // Revenue data from API or fallback
+  const revenueData = metricsChart.length > 0 ? metricsChart : [
+    { month: 'Jan', revenue: 65000, projects: 8 },
+    { month: 'Feb', revenue: 72000, projects: 10 },
+    { month: 'Mar', revenue: 68000, projects: 9 },
+    { month: 'Apr', revenue: 78000, projects: 12 },
+    { month: 'May', revenue: 85000, projects: 15 },
+    { month: 'Jun', revenue: 92000, projects: 18 }
   ];
 
-  const projectStatusData = [
+  // Project status data from API
+  const projectStatusData = overviewData ? [
+    { name: 'Completed', value: overviewData.projects?.completed || 28, color: '#10b981' },
+    { name: 'Active', value: overviewData.projects?.active || 12, color: '#3b82f6' },
+    { name: 'Planning', value: (overviewData.projects?.total || 45) - (overviewData.projects?.active || 12) - (overviewData.projects?.completed || 28), color: '#f59e0b' }
+  ] : [
     { name: 'Completed', value: 28, color: '#10b981' },
-    { name: 'In Progress', value: 12, color: '#3b82f6' },
+    { name: 'Active', value: 12, color: '#3b82f6' },
     { name: 'Planning', value: 5, color: '#f59e0b' }
   ];
 
-  const recentActivities = [
-    { id: 1, action: 'New project created', project: 'EthioPay Mobile App', time: '2 hours ago', type: 'project' },
-    { id: 2, action: 'Client meeting scheduled', project: 'AgriTech Platform', time: '4 hours ago', type: 'meeting' },
-    { id: 3, action: 'Project completed', project: 'HealthLink Website', time: '1 day ago', type: 'completion' },
-    { id: 4, action: 'New client onboarded', project: 'TechCorp Solutions', time: '2 days ago', type: 'client' }
+  // Transform recent activities for display
+  const formattedActivities = recentActivities.length > 0 ? recentActivities.map(activity => ({
+    id: activity.id,
+    action: activity.description,
+    project: activity.model_name,
+    time: new Date(activity.created_at).toLocaleString(),
+    type: activity.action
+  })) : [
+    { id: 1, action: 'New project created', project: 'EthioPay Mobile App', time: '2 hours ago', type: 'create' },
+    { id: 2, action: 'Client meeting scheduled', project: 'AgriTech Platform', time: '4 hours ago', type: 'update' },
+    { id: 3, action: 'Project completed', project: 'HealthLink Website', time: '1 day ago', type: 'delete' },
+    { id: 4, action: 'New client onboarded', project: 'TechCorp Solutions', time: '2 days ago', type: 'login' }
   ];
 
   const quickActions = [
@@ -57,6 +139,12 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
+      {isLoading ? (
+        <div className="flex items-center justify-center min-h-96">
+          <LoadingSpinner size="large" />
+        </div>
+      ) : (
+        <>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -157,10 +245,10 @@ const Dashboard = () => {
               <XAxis dataKey="month" />
               <YAxis />
               <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, 'Revenue']} />
-              <Line 
-                type="monotone" 
-                dataKey="revenue" 
-                stroke="#3b82f6" 
+              <Line
+                type="monotone"
+                dataKey="revenue"
+                stroke="#3b82f6"
                 strokeWidth={3}
                 dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
               />
@@ -197,8 +285,8 @@ const Dashboard = () => {
           <div className="flex justify-center gap-6 mt-4">
             {projectStatusData.map((item, index) => (
               <div key={index} className="flex items-center gap-2">
-                <div 
-                  className="w-3 h-3 rounded-full" 
+                <div
+                  className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: item.color }}
                 ></div>
                 <span className="text-sm text-gray-600">{item.name} ({item.value})</span>
@@ -219,18 +307,18 @@ const Dashboard = () => {
             </button>
           </div>
           <div className="space-y-4">
-            {recentActivities.map((activity) => (
+            {formattedActivities.length > 0 ? formattedActivities.map((activity) => (
               <div key={activity.id} className="flex items-center gap-4 p-4 hover:bg-gray-50 rounded-xl transition-colors duration-200">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                  activity.type === 'project' ? 'bg-blue-100' :
-                  activity.type === 'meeting' ? 'bg-yellow-100' :
-                  activity.type === 'completion' ? 'bg-green-100' :
+                  activity.type === 'create' ? 'bg-blue-100' :
+                  activity.type === 'update' ? 'bg-yellow-100' :
+                  activity.type === 'delete' ? 'bg-red-100' :
                   'bg-purple-100'
                 }`}>
-                  {activity.type === 'project' && <FolderOpen className="w-5 h-5 text-blue-600" />}
-                  {activity.type === 'meeting' && <Clock className="w-5 h-5 text-yellow-600" />}
-                  {activity.type === 'completion' && <CheckCircle className="w-5 h-5 text-green-600" />}
-                  {activity.type === 'client' && <Users className="w-5 h-5 text-purple-600" />}
+                  {activity.type === 'create' && <FolderOpen className="w-5 h-5 text-blue-600" />}
+                  {activity.type === 'update' && <Clock className="w-5 h-5 text-yellow-600" />}
+                  {activity.type === 'delete' && <CheckCircle className="w-5 h-5 text-red-600" />}
+                  {activity.type === 'login' && <Users className="w-5 h-5 text-purple-600" />}
                 </div>
                 <div className="flex-1">
                   <p className="font-medium text-gray-900">{activity.action}</p>
@@ -238,7 +326,11 @@ const Dashboard = () => {
                 </div>
                 <div className="text-sm text-gray-500">{activity.time}</div>
               </div>
-            ))}
+            )) : (
+              <div className="text-center py-8 text-gray-500">
+                No recent activities found.
+              </div>
+            )}
           </div>
         </div>
 
@@ -262,8 +354,10 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
-};
+}
 
 export default Dashboard;
