@@ -143,6 +143,12 @@ export const apiHelpers = {
     api.put(`communication/subscribers/${id}/`, data),
   deleteSubscriber: (id) => api.delete(`communication/subscribers/${id}/`),
 
+  getNotifications: (params) => api.get("communication/notifications/", { params }),
+  createNotification: (data) => api.post("communication/notifications/", data),
+  updateNotification: (id, data) =>
+    api.put(`communication/notifications/${id}/`, data),
+  deleteNotification: (id) => api.delete(`communication/notifications/${id}/`),
+
   // Settings
   getCompanySettings: () => api.get("settings/company/"),
   updateCompanySettings: (data) => api.put("settings/company/", data),
@@ -150,7 +156,17 @@ export const apiHelpers = {
   getSystemSettings: () => api.get("settings/system/"),
   updateSystemSettings: (data) => api.put("settings/system/", data),
 
+  getUserPermissions: (params) => api.get("settings/permissions/", { params }),
+  createUserPermission: (data) => api.post("settings/permissions/", data),
+  updateUserPermission: (id, data) =>
+    api.put(`settings/permissions/${id}/`, data),
+  deleteUserPermission: (id) => api.delete(`settings/permissions/${id}/`),
+
   getSystemLogs: (params) => api.get("settings/logs/", { params }),
+
+  // Database operations
+  backupDatabase: () => api.post("settings/system/backup/"),
+  restoreDatabase: () => api.post("settings/system/restore/"),
 };
 
 export default api;
