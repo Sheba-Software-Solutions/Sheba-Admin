@@ -5,6 +5,8 @@ import {
   FolderOpen, 
   Users, 
   FileText, 
+  PenTool,
+  Briefcase,
   MessageSquare, 
   Settings, 
   LogOut,
@@ -14,10 +16,22 @@ import {
   Search,
   User
 } from 'lucide-react';
+import Tooltip from './Tooltip';
 
 const Layout = ({ children, user, onLogout }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    const saved = localStorage.getItem('sidebarCollapsed');
+    return saved ? JSON.parse(saved) : false;
+  });
   const location = useLocation();
+
+  // Save sidebar state to localStorage
+  const toggleSidebar = () => {
+    const newState = !sidebarCollapsed;
+    setSidebarCollapsed(newState);
+    localStorage.setItem('sidebarCollapsed', JSON.stringify(newState));
+  };
 
   // Extract user role from user object
   const userRole = user?.role || 'admin';
@@ -27,6 +41,8 @@ const Layout = ({ children, user, onLogout }) => {
     { name: 'Projects', href: '/projects', icon: FolderOpen },
     { name: 'Clients', href: '/clients', icon: Users },
     { name: 'Content', href: '/content', icon: FileText },
+    { name: 'Blog', href: '/blog', icon: PenTool },
+    { name: 'Careers', href: '/careers', icon: Briefcase },
     { name: 'Communication', href: '/communication', icon: MessageSquare },
     { name: 'Settings', href: '/settings', icon: Settings },
   ];
@@ -34,7 +50,7 @@ const Layout = ({ children, user, onLogout }) => {
   const isActive = (path) => location.pathname === path;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div 
@@ -44,24 +60,59 @@ const Layout = ({ children, user, onLogout }) => {
       )}
 
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-30 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${
-        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}>
+      <div className={`
+        fixed inset-y-0 left-0 z-30 bg-white shadow-xl transform transition-all duration-300 ease-in-out
+        lg:static lg:inset-0
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        ${sidebarCollapsed ? 'lg:w-16 sidebar-collapsed' : 'lg:w-64'}
+        w-64
+      `}>
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center justify-between h-16 px-6 bg-gradient-to-r from-blue-600 to-purple-600">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                <LayoutDashboard className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-white text-xl font-bold">Sheba Admin</span>
-            </div>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="lg:hidden text-white hover:text-gray-200"
-            >
-              <X className="w-6 h-6" />
-            </button>
+          <div className={`flex items-center h-16 px-6 bg-gradient-to-r from-blue-600 to-purple-600 ${
+            sidebarCollapsed ? 'justify-center' : 'justify-between'
+          }`}>
+            {/* Logo Section */}
+            {sidebarCollapsed ? (
+              /* Centered hamburger when collapsed */
+              <Tooltip content="Expand Sidebar" show={true}>
+                <button
+                  onClick={toggleSidebar}
+                  className="text-white hover:text-white/80 p-2 rounded transition-colors"
+                >
+                  <Menu className="w-6 h-6" />
+                </button>
+              </Tooltip>
+            ) : (
+              /* Full logo and controls when expanded */
+              <>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                    <LayoutDashboard className="w-5 h-5 text-white" />
+                  </div>
+                  <span className="text-white text-xl font-bold">Sheba Admin</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {/* Desktop Sidebar Toggle Button */}
+                  <Tooltip content="Collapse Sidebar" show={false}>
+                    <button
+                      onClick={toggleSidebar}
+                      className="hidden lg:block text-white hover:text-white/80 p-1 rounded transition-colors"
+                    >
+                      <Menu className="w-5 h-5" />
+                    </button>
+                  </Tooltip>
+                  
+                  {/* Mobile Close Button */}
+                  <button
+                    onClick={() => setSidebarOpen(false)}
+                    className="lg:hidden text-white hover:text-gray-200"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+              </>
+            )}
           </div>
 
           {/* User Info */}
@@ -70,10 +121,12 @@ const Layout = ({ children, user, onLogout }) => {
               <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center">
                 <User className="w-5 h-5 text-blue-600" />
               </div>
-              <div>
-                <p className="font-semibold text-gray-900">Admin User</p>
-                <p className="text-sm text-gray-500 capitalize">{userRole}</p>
-              </div>
+              {!sidebarCollapsed && (
+                <div>
+                  <p className="font-semibold text-gray-900">Admin User</p>
+                  <p className="text-sm text-gray-500 capitalize">{userRole}</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -82,42 +135,50 @@ const Layout = ({ children, user, onLogout }) => {
             {navigation.map((item) => {
               const Icon = item.icon;
               return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={`sidebar-item flex items-center gap-3 text-sm font-medium ${
-                    isActive(item.href)
-                      ? 'active text-white'
-                      : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50'
-                  }`}
-                  onClick={() => setSidebarOpen(false)}
-                >
-                  <Icon className="w-5 h-5" />
-                  {item.name}
-                </Link>
+                <Tooltip key={item.name} content={item.name} show={sidebarCollapsed}>
+                  <Link
+                    to={item.href}
+                    className={`sidebar-item flex items-center gap-3 text-sm font-medium ${
+                      isActive(item.href)
+                        ? 'active text-white'
+                        : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50'
+                    } ${sidebarCollapsed ? 'justify-center' : ''}`}
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <Icon className="w-5 h-5" />
+                    {!sidebarCollapsed && item.name}
+                  </Link>
+                </Tooltip>
               );
             })}
           </nav>
 
           {/* Logout */}
           <div className="px-6 py-4 border-t border-gray-200">
-            <button
-              onClick={onLogout}
-              className="sidebar-item w-full flex items-center gap-3 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50"
-            >
-              <LogOut className="w-5 h-5" />
-              Sign Out
-            </button>
+            <Tooltip content="Sign Out" show={sidebarCollapsed}>
+              <button
+                onClick={onLogout}
+                className={`sidebar-item w-full flex items-center gap-3 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 ${
+                  sidebarCollapsed ? 'justify-center' : ''
+                }`}
+              >
+                <LogOut className="w-5 h-5" />
+                {!sidebarCollapsed && 'Sign Out'}
+              </button>
+            </Tooltip>
           </div>
         </div>
       </div>
 
       {/* Main content */}
-      <div className="lg:pl-64">
+      <div className={`flex-1 transition-all duration-300 ${
+        sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'
+      }`}>
         {/* Top bar */}
         <div className="sticky top-0 z-10 bg-white shadow-sm border-b border-gray-200">
           <div className="flex items-center justify-between h-16 px-6">
             <div className="flex items-center gap-4">
+              {/* Hamburger menu for mobile */}
               <button
                 onClick={() => setSidebarOpen(true)}
                 className="lg:hidden text-gray-500 hover:text-gray-700"
@@ -155,7 +216,7 @@ const Layout = ({ children, user, onLogout }) => {
         </div>
 
         {/* Page content */}
-        <main className="p-6">
+        <main className="min-h-screen bg-gray-50 p-6">
           {children}
         </main>
       </div>

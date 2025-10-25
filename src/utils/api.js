@@ -64,6 +64,7 @@ export const apiHelpers = {
   getDashboardMetrics: (params) => api.get("dashboard/metrics/", { params }),
   getRecentActivities: () => api.get("dashboard/activities/recent/"),
   getMetricsChart: (params) => api.get("dashboard/metrics/chart/", { params }),
+  getDashboardCombined: (params) => api.get("dashboard/combined/", { params }),
 
   // Clients
   getClients: (params) => api.get("clients/", { params }),
@@ -148,6 +149,15 @@ export const apiHelpers = {
   updateNotification: (id, data) =>
     api.put(`communication/notifications/${id}/`, data),
   deleteNotification: (id) => api.delete(`communication/notifications/${id}/`),
+
+  // Careers
+  getJobs: (params) => api.get("careers/jobs/", { params }),
+  getJob: (id) => api.get(`careers/jobs/${id}/`),
+  createJob: (data) => api.post("careers/jobs/", data),
+  updateJob: (id, data) => api.put(`careers/jobs/${id}/`, data),
+  deleteJob: (id) => api.delete(`careers/jobs/${id}/`),
+  getJobApplications: (params) => api.get("careers/applications/", { params }),
+  getCareersStats: () => api.get("careers/stats/"),
 
   // Settings
   getCompanySettings: () => api.get("settings/company/"),

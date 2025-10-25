@@ -21,25 +21,59 @@ export const AuthProvider = ({ children }) => {
   const TOKEN_KEY = import.meta.env.VITE_TOKEN_KEY || 'auth_token';
   const USER_KEY = import.meta.env.VITE_USER_KEY || 'user_data';
 
+  // Helper function to clear all auth data
+  const clearAuthData = () => {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    setToken(null);
+    setUser(null);
+    setIsAuthenticated(false);
+  };
+
   useEffect(() => {
     // Check for existing authentication on app load
-    const savedToken = localStorage.getItem(TOKEN_KEY);
-    const savedUser = localStorage.getItem(USER_KEY);
+    const validateStoredAuth = async () => {
+      console.log('🔐 Checking authentication state...');
+      const savedToken = localStorage.getItem(TOKEN_KEY);
+      const savedUser = localStorage.getItem(USER_KEY);
 
-    if (savedToken && savedUser) {
-      try {
-        const userData = JSON.parse(savedUser);
-        setToken(savedToken);
-        setUser(userData);
-        setIsAuthenticated(true);
-      } catch (error) {
-        console.error('Error parsing saved user data:', error);
-        localStorage.removeItem(TOKEN_KEY);
-        localStorage.removeItem(USER_KEY);
+      if (savedToken && savedUser) {
+        console.log('📱 Found stored auth data, validating...');
+        try {
+          const userData = JSON.parse(savedUser);
+          
+          // Validate token with backend by making a test API call
+          try {
+            // Set token temporarily for validation
+            setToken(savedToken);
+            
+            // Test the token by calling a protected endpoint
+            await apiHelpers.getDashboardOverview();
+            
+            // If successful, user is authenticated
+            console.log('✅ Token valid, user authenticated');
+            setUser(userData);
+            setIsAuthenticated(true);
+          } catch (apiError) {
+            // Token is invalid or expired
+            console.log('❌ Stored token is invalid, clearing auth data');
+            clearAuthData();
+          }
+        } catch (error) {
+          console.error('❌ Error parsing saved user data:', error);
+          clearAuthData();
+        }
+      } else {
+        // No stored auth data
+        console.log('🔓 No stored auth data, redirecting to login');
+        setIsAuthenticated(false);
       }
-    }
-    setIsLoading(false);
-  }, []);
+      
+      setIsLoading(false);
+    };
+
+    validateStoredAuth();
+  }, [TOKEN_KEY, USER_KEY]);
 
   const login = async (credentials) => {
     try {
@@ -69,11 +103,7 @@ export const AuthProvider = ({ children }) => {
       console.error('Logout API call failed:', error);
     } finally {
       // Always clear local state and storage
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(USER_KEY);
-      setToken(null);
-      setUser(null);
-      setIsAuthenticated(false);
+      clearAuthData();
     }
   };
 

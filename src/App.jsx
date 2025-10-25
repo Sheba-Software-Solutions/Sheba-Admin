@@ -1,3 +1,4 @@
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { AuthProvider, useAuth } from './hooks/useAuth';
@@ -6,12 +7,25 @@ import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
 import Clients from './pages/Clients';
 import Content from './pages/Content';
+import Blog from './pages/Blog';
+import Careers from './pages/Careers';
 import Communication from './pages/Communication';
 import Settings from './pages/Settings';
 import Layout from './components/Layout';
 import Toast from './components/Toast';
 import { useToast } from './hooks/useToast';
 import LoadingSpinner from './components/LoadingSpinner';
+
+// Protected Route component
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated } = useAuth();
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return children;
+};
 
 // Layout wrapper for authenticated routes
 const AuthenticatedLayout = () => {
@@ -55,17 +69,43 @@ function AppContent() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<Login onLogin={login} />} />
-        <Route element={<AuthenticatedLayout />}>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        {/* Login route - accessible when not authenticated */}
+        <Route 
+          path="/login" 
+          element={
+            isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login onLogin={login} />
+          } 
+        />
+        
+        {/* Protected routes - only accessible when authenticated */}
+        <Route element={
+          <ProtectedRoute>
+            <AuthenticatedLayout />
+          </ProtectedRoute>
+        }>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/projects" element={<Projects />} />
           <Route path="/clients" element={<Clients />} />
           <Route path="/content" element={<Content />} />
+          <Route path="/blog" element={<Blog />} />
+          <Route path="/careers" element={<Careers />} />
           <Route path="/communication" element={<Communication />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        
+        {/* Root and all other routes redirect based on authentication */}
+        <Route 
+          path="/" 
+          element={
+            isAuthenticated ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />
+          } 
+        />
+        <Route 
+          path="*" 
+          element={
+            isAuthenticated ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />
+          } 
+        />
       </Routes>
     </BrowserRouter>
   );
