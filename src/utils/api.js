@@ -157,6 +157,9 @@ export const apiHelpers = {
   updateJob: (id, data) => api.put(`careers/jobs/${id}/`, data),
   deleteJob: (id) => api.delete(`careers/jobs/${id}/`),
   getJobApplications: (params) => api.get("careers/applications/", { params }),
+  getJobApplication: (id) => api.get(`careers/applications/${id}/`),
+  updateJobApplication: (id, data) => api.put(`careers/applications/${id}/`, data),
+  deleteJobApplication: (id) => api.delete(`careers/applications/${id}/`),
   getCareersStats: () => api.get("careers/stats/"),
 
   // Settings

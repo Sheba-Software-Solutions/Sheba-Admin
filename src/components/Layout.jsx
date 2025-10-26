@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -14,17 +14,24 @@ import {
   X,
   Bell,
   Search,
-  User
+  User,
+  ChevronDown,
+  ChevronRight,
+  UserCheck
 } from 'lucide-react';
 import Tooltip from './Tooltip';
 
 const Layout = ({ children, user, onLogout }) => {
+  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const saved = localStorage.getItem('sidebarCollapsed');
     return saved ? JSON.parse(saved) : false;
   });
-  const location = useLocation();
+  const [expandedMenus, setExpandedMenus] = useState(() => {
+    const saved = localStorage.getItem('expandedMenus');
+    return saved ? JSON.parse(saved) : {};
+  });
 
   // Save sidebar state to localStorage
   const toggleSidebar = () => {
@@ -32,6 +39,27 @@ const Layout = ({ children, user, onLogout }) => {
     setSidebarCollapsed(newState);
     localStorage.setItem('sidebarCollapsed', JSON.stringify(newState));
   };
+
+  // Toggle submenu expansion
+  const toggleSubmenu = (menuName) => {
+    const newState = {
+      ...expandedMenus,
+      [menuName]: !expandedMenus[menuName]
+    };
+    setExpandedMenus(newState);
+    localStorage.setItem('expandedMenus', JSON.stringify(newState));
+  };
+
+  // Auto-expand careers menu if on careers-related page
+  useEffect(() => {
+    if (location.pathname === '/careers' || location.pathname === '/job-applications') {
+      if (!expandedMenus.Careers) {
+        const newState = { ...expandedMenus, Careers: true };
+        setExpandedMenus(newState);
+        localStorage.setItem('expandedMenus', JSON.stringify(newState));
+      }
+    }
+  }, [location.pathname, expandedMenus]);
 
   // Extract user role from user object
   const userRole = user?.role || 'admin';
@@ -42,12 +70,23 @@ const Layout = ({ children, user, onLogout }) => {
     { name: 'Clients', href: '/clients', icon: Users },
     { name: 'Content', href: '/content', icon: FileText },
     { name: 'Blog', href: '/blog', icon: PenTool },
-    { name: 'Careers', href: '/careers', icon: Briefcase },
+    { 
+      name: 'Careers', 
+      icon: Briefcase,
+      submenu: [
+        { name: 'Job Postings', href: '/careers', icon: Briefcase },
+        { name: 'Applications', href: '/job-applications', icon: UserCheck }
+      ]
+    },
     { name: 'Communication', href: '/communication', icon: MessageSquare },
     { name: 'Settings', href: '/settings', icon: Settings },
   ];
 
   const isActive = (path) => location.pathname === path;
+  
+  const isSubmenuActive = (submenu) => {
+    return submenu.some(item => location.pathname === item.href);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -134,6 +173,67 @@ const Layout = ({ children, user, onLogout }) => {
           <nav className="flex-1 px-6 py-4 space-y-2">
             {navigation.map((item) => {
               const Icon = item.icon;
+              
+              // Handle items with submenus
+              if (item.submenu) {
+                const isExpanded = expandedMenus[item.name];
+                const hasActiveSubmenu = isSubmenuActive(item.submenu);
+                
+                return (
+                  <div key={item.name}>
+                    <Tooltip content={item.name} show={sidebarCollapsed}>
+                      <button
+                        onClick={() => !sidebarCollapsed && toggleSubmenu(item.name)}
+                        className={`sidebar-item w-full flex items-center gap-3 text-sm font-medium ${
+                          hasActiveSubmenu
+                            ? 'active text-white'
+                            : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50'
+                        } ${sidebarCollapsed ? 'justify-center' : 'justify-between'}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Icon className="w-5 h-5" />
+                          {!sidebarCollapsed && item.name}
+                        </div>
+                        {!sidebarCollapsed && (
+                          <div className="transition-transform duration-200">
+                            {isExpanded ? (
+                              <ChevronDown className="w-4 h-4" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4" />
+                            )}
+                          </div>
+                        )}
+                      </button>
+                    </Tooltip>
+                    
+                    {/* Submenu items */}
+                    {!sidebarCollapsed && isExpanded && (
+                      <div className="ml-8 mt-2 space-y-1">
+                        {item.submenu.map((subItem) => {
+                          const SubIcon = subItem.icon;
+                          return (
+                            <Link
+                              key={subItem.name}
+                              to={subItem.href}
+                              className={`sidebar-item flex items-center gap-3 text-sm font-medium ${
+                                isActive(subItem.href)
+                                  ? 'active text-white'
+                                  : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
+                              }`}
+                              onClick={() => setSidebarOpen(false)}
+                            >
+                              <SubIcon className="w-4 h-4" />
+                              {subItem.name}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+              
+              // Handle regular menu items
               return (
                 <Tooltip key={item.name} content={item.name} show={sidebarCollapsed}>
                   <Link

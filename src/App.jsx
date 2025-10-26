@@ -9,6 +9,7 @@ import Clients from './pages/Clients';
 import Content from './pages/Content';
 import Blog from './pages/Blog';
 import Careers from './pages/Careers';
+import JobApplications from './pages/JobApplications';
 import Communication from './pages/Communication';
 import Settings from './pages/Settings';
 import Layout from './components/Layout';
@@ -89,6 +90,7 @@ function AppContent() {
           <Route path="/content" element={<Content />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/careers" element={<Careers />} />
+          <Route path="/job-applications" element={<JobApplications />} />
           <Route path="/communication" element={<Communication />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
