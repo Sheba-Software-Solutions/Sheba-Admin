@@ -35,9 +35,19 @@ const Login = ({ onLogin }) => {
 
       if (!result.success) {
         console.log("Login failed:", result.error);
-        setError(
-          result.error || "Login failed. Please check your credentials.",
-        );
+        const errData = result.error;
+
+        // Extract the actual error message from the object
+        if (typeof errData === 'string') {
+          setError(errData);
+        } else if (errData?.detail) {
+          setError(errData.detail);
+        } else if (errData?.non_field_errors && Array.isArray(errData.non_field_errors)) {
+          setError(errData.non_field_errors[0]); // "Unable to log in..."
+        } else {
+          // Fallback for unknown error formats
+          setError("The username or password you entered is incorrect. Please try again.");
+        }
       } else {
         console.log("Login successful, validating role...");
 
