@@ -42,208 +42,217 @@ const Login = ({ onLogin }) => {
           setError(errData);
         } else if (errData?.detail) {
           setError(errData.detail);
-        } else if (errData?.non_field_errors && Array.isArray(errData.non_field_errors)) {
-          setError(errData.non_field_errors[0]); // "Unable to log in..."
-        } else {
-          // Fallback for unknown error formats
-          setError("The username or password you entered is incorrect. Please try again.");
+        } else if (errData?.non_field_errors && Array.isArray(errData.non_field_errors) && errData.non_field_errors.length > 0) {
+          // Safely get the message and ensure it is a string
+          const rawMsg = errData.non_field_errors[0];
+          const msg = String(rawMsg); // Force it to be a string
+
+          if (msg.toLowerCase().includes("credentials") || msg.toLowerCase().includes("log in")) {
+            setError("Invalid username or password please check again");
+          } else {
+            setError(msg);
+          }
         }
       } else {
-        console.log("Login successful, validating role...");
-
-        // Check if the user role matches the selected role
-        const userRole = result.user?.role;
-        const selectedRole = formData.role;
-
-        console.log("User role:", userRole, "Selected role:", selectedRole);
-
-        if (userRole !== selectedRole) {
-          // Role mismatch - logout and show error
-          console.log("Role mismatch - logging out");
-          await logoutOnRoleMismatch();
-          setError(
-            `Access denied. You are logged in as ${userRole} but selected ${selectedRole} role.`,
-          );
-          return;
-        }
-
-        console.log("Role validation passed - login complete");
-        // Redirect to dashboard after successful login
-        navigate("/dashboard");
+        // Fallback for unknown error formats
+        setError("The username or password you entered is incorrect. Please try again.");
       }
-    } catch (err) {
-      console.error("Login error:", err);
+    } else {
+      console.log("Login successful, validating role...");
 
-      // Professional Error Handling Logic
-      if (err.response) {
-        // The server responded with a status code outside the 2xx range
-        const status = err.response.status;
-        const data = err.response.data;
+      // Check if the user role matches the selected role
+      const userRole = result.user?.role;
+      const selectedRole = formData.role;
 
-        if (status === 400) {
-          // Bad Request - often missing fields or invalid format
-          setError("Please ensure all fields are filled out correctly.");
-        } else if (status === 401) {
-          // Unauthorized - Wrong username or password
-          setError("The username or password you entered is incorrect. Please try again.");
-        } else if (status === 403) {
-          // Forbidden - Account disabled or insufficient permissions
-          setError("Access denied. Your account does not have the necessary permissions.");
-        } else if (status === 404) {
-          // Not Found - Endpoint wrong (rare) or user not found
-          setError("Account not found. Please contact your administrator.");
-        } else if (status >= 500) {
-          // Server Error
-          setError("We're experiencing technical difficulties. Please try again later.");
-        } else {
-          // Fallback for other API errors
-          setError(data.detail || "An unexpected error occurred. Please try again.");
-        }
-      } else if (err.request) {
-        // The request was made but no response was received (Network Error)
-        setError("Unable to connect to the server. Please check your internet connection.");
-      } else {
-        // Something happened in setting up the request
-        setError("A system error occurred. Please refresh the page and try again.");
+      console.log("User role:", userRole, "Selected role:", selectedRole);
+
+      if (userRole !== selectedRole) {
+        // Role mismatch - logout and show error
+        console.log("Role mismatch - logging out");
+        await logoutOnRoleMismatch();
+        setError(
+          `Access denied. You are logged in as ${userRole} but selected ${selectedRole} role.`,
+        );
+        return;
       }
-    } finally {
-      setIsLoading(false);
+
+      console.log("Role validation passed - login complete");
+      // Redirect to dashboard after successful login
+      navigate("/dashboard");
     }
-  };
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
+  } catch (err) {
+    console.error("Login error:", err);
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-100 rounded-full opacity-30"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-100 rounded-full opacity-30"></div>
+    // Professional Error Handling Logic
+    if (err.response) {
+      // The server responded with a status code outside the 2xx range
+      const status = err.response.status;
+      const data = err.response.data;
+
+      if (status === 400) {
+        // Bad Request - often missing fields or invalid format
+        setError("Please ensure all fields are filled out correctly.");
+      } else if (status === 401) {
+        // Unauthorized - Wrong username or password
+        setError("The username or password you entered is incorrect. Please try again.");
+      } else if (status === 403) {
+        // Forbidden - Account disabled or insufficient permissions
+        setError("Access denied. Your account does not have the necessary permissions.");
+      } else if (status === 404) {
+        // Not Found - Endpoint wrong (rare) or user not found
+        setError("Account not found. Please contact your administrator.");
+      } else if (status >= 500) {
+        // Server Error
+        setError("We're experiencing technical difficulties. Please try again later.");
+      } else {
+        // Fallback for other API errors
+        setError(data.detail || "An unexpected error occurred. Please try again.");
+      }
+    } else if (err.request) {
+      // The request was made but no response was received (Network Error)
+      setError("Unable to connect to the server. Please check your internet connection.");
+    } else {
+      // Something happened in setting up the request
+      setError("A system error occurred. Please refresh the page and try again.");
+    }
+  } finally {
+    setIsLoading(false);
+  }
+};
+const handleChange = (e) => {
+  setFormData({
+    ...formData,
+    [e.target.name]: e.target.value,
+  });
+};
+
+return (
+  <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+    {/* Background decoration */}
+    <div className="absolute inset-0 overflow-hidden">
+      <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-100 rounded-full opacity-30"></div>
+      <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-100 rounded-full opacity-30"></div>
+    </div>
+
+    <div className="relative w-full max-w-md">
+      {/* Logo and Header */}
+      <div className="text-center mb-8">
+        <div className="flex items-center justify-center gap-3 mb-6">
+          <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center">
+            <Shield className="w-6 h-6 text-white" />
+          </div>
+          <span className="text-2xl font-bold gradient-text">
+            Sheba Admin
+          </span>
+        </div>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          Welcome Back
+        </h1>
+        <p className="text-gray-600">
+          Sign in to access your admin dashboard
+        </p>
       </div>
 
-      <div className="relative w-full max-w-md">
-        {/* Logo and Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center">
-              <Shield className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-2xl font-bold gradient-text">
-              Sheba Admin
-            </span>
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome Back
-          </h1>
-          <p className="text-gray-600">
-            Sign in to access your admin dashboard
-          </p>
-        </div>
-
-        {/* Login Form */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-white/20">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Username Field */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Username
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  name="username"
-                  value={formData.username}
-                  onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                  placeholder="Enter your username"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Password Field */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                  placeholder="Enter your password"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Role Selection */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Role
-              </label>
-              <select
-                name="role"
-                value={formData.role || "admin"}
+      {/* Login Form */}
+      <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-white/20">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Username Field */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Username
+            </label>
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                name="username"
+                value={formData.username}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-              >
-                <option value="admin">Admin</option>
-                <option value="manager">Manager</option>
-                <option value="developer">Developer</option>
-                <option value="client">Client</option>
-              </select>
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                placeholder="Enter your username"
+                required
+              />
             </div>
-
-            {/* Error Message */}
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
-                {error}
-              </div>
-            )}
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-6 rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? "Signing In..." : "Sign In"}
-            </button>
-          </form>
-
-          {/* Footer */}
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-500">
-              Forgot your password?
-              <button className="text-blue-600 hover:text-blue-700 ml-1 font-medium">
-                Reset here
-              </button>
-            </p>
           </div>
+
+          {/* Password Field */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Password
+            </label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                placeholder="Enter your password"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showPassword ? (
+                  <EyeOff className="w-5 h-5" />
+                ) : (
+                  <Eye className="w-5 h-5" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Role Selection */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Role
+            </label>
+            <select
+              name="role"
+              value={formData.role || "admin"}
+              onChange={handleChange}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+            >
+              <option value="admin">Admin</option>
+              <option value="manager">Manager</option>
+              <option value="developer">Developer</option>
+              <option value="client">Client</option>
+            </select>
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
+              {error}
+            </div>
+          )}
+
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-6 rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading ? "Signing In..." : "Sign In"}
+          </button>
+        </form>
+
+        {/* Footer */}
+        <div className="mt-6 text-center">
+          <p className="text-sm text-gray-500">
+            Forgot your password?
+            <button className="text-blue-600 hover:text-blue-700 ml-1 font-medium">
+              Reset here
+            </button>
+          </p>
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 };
 
 export default Login;

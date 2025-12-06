@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Mail, 
-  MessageSquare, 
-  Send, 
-  Eye, 
+import {
+  Mail,
+  MessageSquare,
+  Send,
+  Eye,
   Trash2,
   Bell,
   Users,
@@ -44,25 +44,25 @@ const Communication = () => {
     message: '',
     status: 'new',
     response: '',
-    
+
     // Email template form
     template_name: '',
     template_type: 'welcome',
     template_subject: '',
     template_content: '',
     is_active: true,
-    
+
     // Newsletter form
     newsletter_title: '',
     newsletter_content: '',
     newsletter_status: 'draft',
     scheduled_at: '',
-    
+
     // Subscriber form
     subscriber_email: '',
     subscriber_name: '',
     is_active: true,
-    
+
     // Notification form
     notification_title: '',
     notification_message: '',
@@ -86,32 +86,32 @@ const Communication = () => {
   const loadData = async () => {
     try {
       setIsLoading(true);
-      
+
       switch (activeTab) {
         case 'contacts':
           const contactsRes = await apiHelpers.getContactSubmissions({ ordering: '-created_at' });
           const contactsData = contactsRes?.data;
           setContactSubmissions(Array.isArray(contactsData) ? contactsData : (contactsData?.results || []));
           break;
-          
+
         case 'templates':
           const templatesRes = await apiHelpers.getEmailTemplates({ ordering: '-created_at' });
           const templatesData = templatesRes?.data;
           setEmailTemplates(Array.isArray(templatesData) ? templatesData : (templatesData?.results || []));
           break;
-          
+
         case 'newsletters':
           const newslettersRes = await apiHelpers.getNewsletters({ ordering: '-created_at' });
           const newslettersData = newslettersRes?.data;
           setNewsletters(Array.isArray(newslettersData) ? newslettersData : (newslettersData?.results || []));
           break;
-          
+
         case 'subscribers':
           const subscribersRes = await apiHelpers.getSubscribers({ ordering: '-subscribed_at' });
           const subscribersData = subscribersRes?.data;
           setSubscribers(Array.isArray(subscribersData) ? subscribersData : (subscribersData?.results || []));
           break;
-          
+
         case 'notifications':
           const notificationsRes = await apiHelpers.getNotifications({ ordering: '-created_at' });
           const notificationsData = notificationsRes?.data;
@@ -140,7 +140,7 @@ const Communication = () => {
       name: '', email: '', phone: '', subject: '', message: '', status: 'new', response: '',
       template_name: '', template_type: 'welcome', template_subject: '', template_content: '', is_active: true,
       newsletter_title: '', newsletter_content: '', newsletter_status: 'draft', scheduled_at: '',
-      subscriber_email: '', subscriber_name: '', is_active: true,
+      subscriber_email: '', subscriber_name: '',
       notification_title: '', notification_message: '', notification_type: 'info', recipient_id: 1
     });
     setEditingItem(null);
@@ -149,17 +149,16 @@ const Communication = () => {
 
   const handleEdit = (item) => {
     setFormData({
-      name: item.name || '', email: item.email || '', phone: item.phone || '', 
-      subject: item.subject || '', message: item.message || '', status: item.status || 'new', 
+      name: item.name || '', email: item.email || '', phone: item.phone || '',
+      subject: item.subject || '', message: item.message || '', status: item.status || 'new',
       response: item.response || '',
-      template_name: item.name || '', template_type: item.template_type || 'welcome', 
-      template_subject: item.subject || '', template_content: item.content || '', 
+      template_name: item.name || '', template_type: item.template_type || 'welcome',
+      template_subject: item.subject || '', template_content: item.content || '',
       is_active: item.is_active !== undefined ? item.is_active : true,
-      newsletter_title: item.title || '', newsletter_content: item.content || '', 
+      newsletter_title: item.title || '', newsletter_content: item.content || '',
       newsletter_status: item.status || 'draft', scheduled_at: item.scheduled_at || '',
-      subscriber_email: item.email || '', subscriber_name: item.name || '', 
-      is_active: item.is_active !== undefined ? item.is_active : true,
-      notification_title: item.title || '', notification_message: item.message || '', 
+      subscriber_email: item.email || '', subscriber_name: item.name || '',
+      notification_title: item.title || '', notification_message: item.message || '',
       notification_type: item.notification_type || 'info', recipient_id: item.recipient_id || 1
     });
     setEditingItem(item);
@@ -169,7 +168,7 @@ const Communication = () => {
   const handleSave = async () => {
     try {
       let response;
-      
+
       switch (activeTab) {
         case 'contacts':
           const contactData = {
@@ -187,7 +186,7 @@ const Communication = () => {
             response = await apiHelpers.createContactSubmission(contactData);
           }
           break;
-          
+
         case 'templates':
           const templateData = {
             name: formData.template_name,
@@ -202,7 +201,7 @@ const Communication = () => {
             response = await apiHelpers.createEmailTemplate(templateData);
           }
           break;
-          
+
         case 'newsletters':
           const newsletterData = {
             title: formData.newsletter_title,
@@ -217,7 +216,7 @@ const Communication = () => {
             response = await apiHelpers.createNewsletter(newsletterData);
           }
           break;
-          
+
         case 'subscribers':
           const subscriberData = {
             email: formData.subscriber_email,
@@ -230,7 +229,7 @@ const Communication = () => {
             response = await apiHelpers.createSubscriber(subscriberData);
           }
           break;
-          
+
         case 'notifications':
           const notificationData = {
             title: formData.notification_title,
@@ -245,7 +244,7 @@ const Communication = () => {
           }
           break;
       }
-      
+
       showToast(`${activeTab.slice(0, -1)} ${editingItem ? 'updated' : 'created'} successfully`, 'success');
       setShowModal(false);
       loadData();
@@ -257,7 +256,7 @@ const Communication = () => {
 
   const handleDelete = async (item) => {
     if (!window.confirm('Are you sure you want to delete this item?')) return;
-    
+
     try {
       switch (activeTab) {
         case 'contacts':
@@ -449,9 +448,8 @@ const Communication = () => {
         return (
           <div className="space-y-4">
             {notifications.map((notification) => (
-              <div key={notification.id} className={`bg-white rounded-2xl p-6 shadow-lg card-hover border-l-4 ${
-                notification.is_read ? 'border-gray-300' : 'border-blue-600'
-              }`}>
+              <div key={notification.id} className={`bg-white rounded-2xl p-6 shadow-lg card-hover border-l-4 ${notification.is_read ? 'border-gray-300' : 'border-blue-600'
+                }`}>
                 <div className="flex items-start justify-between">
                   <div>
                     <h3 className="text-lg font-bold text-gray-900">{notification.title}</h3>
@@ -690,11 +688,10 @@ const Communication = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
-                  activeTab === tab.id
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-200 ${activeTab === tab.id
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-blue-50 hover:text-blue-600'
-                }`}
+                  }`}
               >
                 <Icon className="w-4 h-4" />
                 {tab.name}
